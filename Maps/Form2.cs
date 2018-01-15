@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Collections;
 using System.Data.SQLite;
+using MsgBox;
 
 namespace Maps
 {
@@ -18,13 +19,26 @@ namespace Maps
 
         public Form2()
         {
+            List<string> NonDispFields = new List<string>();
+            NonDispFields.Add("Id".ToUpper());
+            NonDispFields.Add("Longitude".ToUpper());
+            NonDispFields.Add("Latitude".ToUpper());
+            NonDispFields.Add("Rating".ToUpper());
+            NonDispFields.Add("Place_id".ToUpper());
+            NonDispFields.Add("Locality".ToUpper());
+            NonDispFields.Add("Admin_Area_level_5".ToUpper());
+            NonDispFields.Add("Admin_Area_level_4".ToUpper());
+            NonDispFields.Add("Admin_Area_level_3".ToUpper());
+            NonDispFields.Add("Admin_Area_level_2".ToUpper());
+            NonDispFields.Add("Admin_Area_level_1".ToUpper());
+            NonDispFields.Add("Country".ToUpper());
             InitializeComponent();
-            ShowDataToGrid(dataGridView1);
+            ShowDataToGrid(dataGridView1, NonDispFields);
             DispMap();
-            //            FilterLonLat((float)32.000, (float)27.000);
+            //FilterLonLat((float)32.000, (float)27.000);
         }
 
-        public Form2(double Lat, double Lon):this()
+        public Form2(double Lon, double Lat):this()
         {
             FilterLonLat(Lat, Lon);
         }
@@ -42,9 +56,9 @@ namespace Maps
 
         private void button1_Click(object sender, EventArgs e)
         {
-            gMap.SetPositionByKeywords("Paris, France"); //("Athens, Greece");
+/*            gMap.SetPositionByKeywords("Athens, Greece"); //("Athens, Greece");
             gMap.Zoom = 13;
-            gMap.ZoomAndCenterMarkers("Paris, France"); //("Athens, Greece");
+            gMap.ZoomAndCenterMarkers("Athens, Greece"); //("Athens, Greece");
 
             GMap.NET.WindowsForms.GMapOverlay markers = new GMap.NET.WindowsForms.GMapOverlay("markers");
             GMap.NET.WindowsForms.GMapMarker marker =
@@ -53,6 +67,7 @@ namespace Maps
                     GMap.NET.WindowsForms.Markers.GMarkerGoogleType.blue_pushpin);
             markers.Markers.Add(marker);
             gMap.Overlays.Add(markers);
+*/
         }
         private void gMap_OnMarkerClick(GMap.NET.WindowsForms.GMapMarker item, MouseEventArgs e)
         {
@@ -60,13 +75,13 @@ namespace Maps
             MessageBox.Show(item.Tag.ToString());
         }
 
-        public void ShowDataToGrid(DataGridView Grid)
+        public void ShowDataToGrid(DataGridView Grid,List<string> NonDispFields)
         {
-            string dbFilePath = @"sqldb.db";
+            string dbFilePath = @"Stationsdb.db";
             SQLiteConnectionStringBuilder aaa = new SQLiteConnectionStringBuilder();
             aaa.DataSource = dbFilePath;
             SQLiteConnection sqlConn = new SQLiteConnection(aaa.ConnectionString);
-            string SelectSt = "SELECT * FROM " + "GeoData";
+            string SelectSt = "SELECT * FROM " + "GeoStations";
             //                          "ORDER BY C.Name, P.Year, PR.Name, P.Sn ";
 
             SQLiteCommand cmd = new SQLiteCommand(SelectSt, sqlConn);
@@ -170,6 +185,13 @@ namespace Maps
                 BS.ApplyDefaultSort = true;
                 GlobalDV = new DataView(dt);
                 Grid.DataSource = BS;
+                foreach (DataGridViewColumn t in Grid.Columns)
+                { if (NonDispFields.Contains(t.Name.ToUpper()))
+                            {
+                        t.Visible = false; }
+                    t.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+                }
+
 
                 //Grid.Columns.Add(DGVC);
 
@@ -204,9 +226,9 @@ namespace Maps
 
         private void button1_Click_1(object sender, EventArgs e)
         {
-            gMap.SetPositionByKeywords("Paris, France"); //("Athens, Greece");
+            gMap.SetPositionByKeywords("Athens, Greece"); //("Athens, Greece");
             gMap.Zoom = 13;
-            gMap.ZoomAndCenterMarkers("Paris, France"); //("Athens, Greece");
+            gMap.ZoomAndCenterMarkers("Athens, Greece"); //("Athens, Greece");
 
             GMap.NET.WindowsForms.GMapOverlay markers = new GMap.NET.WindowsForms.GMapOverlay("markers");
             GMap.NET.WindowsForms.GMapMarker marker =
@@ -273,16 +295,17 @@ namespace Maps
             }
             gMap.ZoomAndCenterMarkers(loc);
             gMap.Position = new GMap.NET.PointLatLng(la, lo);
+            gMap.Zoom = gMap.Zoom + 2;
         }
         private void FilterLonLat(double Lon, double Lat)
         {
             double fromLon, toLon;
             double fromLat, toLat;
 
-            fromLon = Lon - (double)0.007;
-            fromLat = Lat - (double)0.007;
-            toLon   = Lon + (double)0.007;
-            toLat   = Lat + (double)0.007;
+            fromLon = Lon - (double)0.004;
+            fromLat = Lat - (double)0.004;
+            toLon   = Lon + (double)0.004;
+            toLat   = Lat + (double)0.004;
 
             String aaa = "Longitude >= " + fromLon.ToString() + " AND " + "Longitude <= " + toLon.ToString() + " AND "+
                          "Latitude >= " + fromLat.ToString() + " AND " + "Latitude <= " + toLat.ToString();
@@ -295,7 +318,8 @@ namespace Maps
             }
             else
             {
-                GlobalDV.RowFilter = GlobalDV.RowFilter + aaa;
+                GlobalDV.RowFilter = aaa;
+                //GlobalDV.RowFilter = GlobalDV.RowFilter + aaa;
             }
 
             dataGridView1.DataSource = GlobalDV;
@@ -304,13 +328,65 @@ namespace Maps
         private void DispMap()
         {
             gMap.MapProvider = GMap.NET.MapProviders.GoogleMapProvider.Instance;
-            GMap.NET.GMaps.Instance.Mode = GMap.NET.AccessMode.ServerOnly;
+            GMap.NET.GMaps.Instance.Mode = GMap.NET.AccessMode.ServerAndCache; //ServerOnly;
             gMap.SetPositionByKeywords("Athens, Greece");
             gMap.ShowCenter = false;
         }
 
+        private void button4_Click(object sender, EventArgs e)
+        {
+            AddressGeocodeing();
+        }
 
+        private void AddressGeocodeing()
+        {
+            //GMap.NET.GeocodingProvider = 
+            float tmpLatitude=0;
+            float tmpLongitude=0;
 
+            Geocoding.Google.GoogleGeocoder gk = new Geocoding.Google.GoogleGeocoder("AIzaSyCxAKDi4ZgokHWCYK_5sQ8Dg-nlcLT2myo");
+            gk.Language = "EL";
+            String Addr = DoBoxClick();
+            foreach (Geocoding.Google.GoogleAddress aa in gk.Geocode(Addr))
+            {
+                //MessageBox.Show(aa.ToString());
+                //MessageBox.Show(aa.Coordinates.Latitude.ToString());
+                //MessageBox.Show(aa.Coordinates.Longitude.ToString());
+                //MessageBox.Show(aa.FormattedAddress.ToString());
+                gMap.Position = new GMap.NET.PointLatLng(aa.Coordinates.Latitude, aa.Coordinates.Longitude);
+                gMap.Zoom = 22;
+                tmpLatitude  = (float)aa.Coordinates.Latitude;
+                tmpLongitude = (float)aa.Coordinates.Longitude;
+            }
+            FilterLonLat(tmpLongitude, tmpLatitude);
 
+            //List<Geocoding.Google.GoogleAddress> aaa = (List<Geocoding.Google.GoogleAddress >)gk.Geocode("Κουσιανόφσκυ 2-6");
+
+        }
+
+        private String DoBoxClick()
+        {
+            //Set buttons language Czech/English/German/Slovakian/Spanish (default English)
+            InputBox.SetLanguage(InputBox.Language.English);
+            //Save the DialogResult as res
+            DialogResult res = InputBox.ShowDialog("Διεύθυνση:", "Combo InputBox",   //Text message (mandatory), Title (optional)
+                InputBox.Icon.Question,                                                                         //Set icon type Error/Exclamation/Question/Warning (default info)
+                //InputBox.Icon.Nothing,
+                InputBox.Buttons.OkCancel,                                                                      //Set buttons set OK/OKcancel/YesNo/YesNoCancel (default ok)
+                InputBox.Type.TextBox,                                                                         //Set type ComboBox/TextBox/Nothing (default nothing)
+                new string[] { "Item1", "Item2", "Item3" },                                                        //Set string field as ComboBox items (default null)
+                true,                                                                                           //Set visible in taskbar (default false)
+                new System.Drawing.Font("Calibri", 10F, System.Drawing.FontStyle.Bold));                        //Set font (default by system)
+            //Check InputBox result
+            if (res == System.Windows.Forms.DialogResult.OK || res == System.Windows.Forms.DialogResult.Yes)
+                return InputBox.ResultValue;                                                                    //Get returned value
+            else
+                return "";
+        }
+
+        private void button5_Click(object sender, EventArgs e)
+        {
+            DoBoxClick();
+        }
     }
 }
